@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AvatarCore</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#080b14;color:#e0e8ff;font-family:'Courier New',monospace;min-height:100vh;overflow-x:hidden}
+  h1{text-align:center;font-size:1.8rem;letter-spacing:6px;color:#00f0ff;text-shadow:0 0 20px #00f0ff88;padding:18px 0 4px}
+  .sub{text-align:center;color:#4a6080;font-size:.7rem;letter-spacing:3px;margin-bottom:18px}
+  .layout{display:grid;grid-template-columns:220px 1fr 220px;gap:14px;padding:0 18px 18px}
+
+  /* Avatar Panel */
+  .avatar-panel{background:#0d1525;border:1px solid #00f0ff33;border-radius:10px;padding:14px;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .avatar-wrap{position:relative;width:120px;height:120px}
+  #avatarCanvas{border-radius:50%;border:3px solid #00f0ff;box-shadow:0 0 20px #00f0ff55;cursor:pointer}
+  .avatar-name{font-size:1rem;color:#00f0ff;letter-spacing:2px;text-align:center}
+  .avatar-class{font-size:.65rem;color:#7090b0;letter-spacing:1px}
+  .status-badge{background:#00f0ff18;border:1px solid #00f0ff44;border-radius:20px;padding:3px 12px;font-size:.65rem;color:#00f0ff}
+  .btn{width:100%;padding:8px;background:transparent;border:1px solid #00f0ff55;border-radius:6px;color:#00f0ff;font-family:inherit;font-size:.7rem;letter-spacing:2px;cursor:pointer;transition:all .2s}
+  .btn:hover{background:#00f0ff22;box-shadow:0 0 10px #00f0ff44}
+  .btn.danger{border-color:#ff3366aa;color:#ff3366}
+  .btn.danger:hover{background:#ff336622}
+
+  /* Stats */
+  .stats-panel{background:#0d1525;border:1px solid #00f0ff22;border-radius:10px;padding:14px}
+  .panel-title{font-size:.65rem;letter-spacing:3px;color:#4a7090;margin-bottom:12px;border-bottom:1px solid #ffffff11;padding-bottom:6px}
+  .stat-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .stat-label{width:80px;font-size:.6rem;color:#7090b0;letter-spacing:1px}
+  .bar-bg{flex:1;height:8px;background:#0a1020;border-radius:4px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+  .stat-val{width:30px;font-size:.65rem;color:#e0e8ff;text-align:right}
+  .hp .bar-fill{background:linear-gradient(90deg,#ff3366,#ff6688)}
+  .stamina .bar-fill{background:linear-gradient(90deg,#ffaa00,#ffcc44)}
+  .skill .bar-fill{background:linear-gradient(90deg,#00aaff,#00f0ff)}
+  .exp .bar-fill{background:linear-gradient(90deg,#aa44ff,#cc88ff)}
+  .aggro .bar-fill{background:linear-gradient(90deg,#ff5500,#ff8844)}
+  .defense .bar-fill{background:linear-gradient(90deg,#00cc88,#44ffaa)}
+
+  /* Center */
+  .center-panel{display:flex;flex-direction:column;gap:14px}
+  .prediction-box{background:#0d1525;border:1px solid #aa44ff55;border-radius:10px;padding:14px}
+  .pred-title{font-size:.65rem;letter-spacing:3px;color:#aa44ff;margin-bottom:10px}
+  .pred-move{display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:8px;border-radius:6px;background:#0a0f1e;border:1px solid transparent;transition:all .3s;cursor:pointer}
+  .pred-move.top{border-color:#aa44ff55;box-shadow:0 0 10px #aa44ff22}
+  .pred-move-name{flex:1;font-size:.75rem;letter-spacing:1px}
+  .pred-conf{font-size:.65rem;color:#aa44ff}
+  .pred-bar{width:80px;height:4px;background:#0a1020;border-radius:2px;overflow:hidden}
+  .pred-bar-fill{height:100%;background:linear-gradient(90deg,#aa44ff,#cc88ff);border-radius:2px}
+  .action-icon{font-size:1.2rem}
+
+  .log-box{background:#0d1525;border:1px solid #00f0ff22;border-radius:10px;padding:14px;flex:1}
+  .log-entry{font-size:.62rem;color:#4a6080;margin-bottom:4px;padding:3px 0;border-bottom:1px solid #ffffff05}
+  .log-entry span{color:#00f0ff88}
+  .log-entry.new{color:#a0c8e0}
+
+  /* Recognition */
+  .recog-panel{background:#0d1525;border:1px solid #00f0ff22;border-radius:10px;padding:14px}
+  .accuracy-ring{position:relative;width:90px;height:90px;margin:0 auto 10px}
+  .accuracy-ring svg{transform:rotate(-90deg)}
+  .accuracy-val{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:1rem;color:#00f0ff;font-weight:bold}
+  .recog-label{text-align:center;font-size:.6rem;color:#4a7090;letter-spacing:2px;margin-bottom:10px}
+  .state-item{display:flex;justify-content:space-between;font-size:.62rem;padding:4px 0;border-bottom:1px solid #ffffff08}
+  .state-item .s-name{color:#7090b0}
+  .state-item .s-conf{color:#00f0ff}
+  .mini-chart{margin-top:12px}
+  .chart-bars{display:flex;align-items:flex-end;gap:3px;height:50px}
+  .chart-bar{flex:1;background:linear-gradient(180deg,#00f0ff,#0044aa);border-radius:2px 2px 0 0;transition:height .5s}
+  .chart-label{display:flex;justify-content:space-between;font-size:.5rem;color:#2a4060;margin-top:3px}
+
+  .pulse{animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  @keyframes glow{0%,100%{box-shadow:0 0 20px #00f0ff55}50%{box-shadow:0 0 40px #00f0ffaa}}
+  #avatarCanvas{animation:glow 3s infinite}
+</style>
+</head>
+<body>
+<h1>⬡ AVATARCORE</h1>
+<div class="sub">PRECISION · STATS · PREDICTION ENGINE v2.4</div>
+
+<div class="layout">
+  <!-- LEFT: Avatar -->
+  <div class="avatar-panel">
+    <div class="avatar-wrap">
+      <canvas id="avatarCanvas" width="120" height="120"></canvas>
+    </div>
+    <div class="avatar-name" id="aName">ZEPHYR-X</div>
+    <div class="avatar-class" id="aClass">SHADOW ASSASSIN</div>
+    <div class="status-badge pulse">● ACTIVE</div>
+    <div style="width:100%;margin-top:4px">
+      <div style="font-size:.55rem;color:#4a7090;letter-spacing:2px;margin-bottom:4px">LEVEL</div>
+      <div style="font-size:1.6rem;color:#00f0ff;text-align:center;text-shadow:0 0 10px #00f0ff">47</div>
+    </div>
+    <button class="btn" onclick="randomizeAvatar()">⟳ RANDOMIZE</button>
+    <button class="btn danger" onclick="simulateBattle()">⚔ SIMULATE</button>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center-panel">
+    <!-- Prediction -->
+    <div class="prediction-box">
+      <div class="pred-title">▶ NEXT MOVE PREDICTION ENGINE</div>
+      <div id="predList"></div>
+    </div>
+    <!-- Log -->
+    <div class="log-box">
+      <div class="panel-title">BATTLE LOG</div>
+      <div id="logList"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <!-- Stats -->
+    <div class="stats-panel">
+      <div class="panel-title">AVATAR STATS</div>
+      <div id="statRows"></div>
+    </div>
+    <!-- Recognition -->
+    <div class="recog-panel">
+      <div class="panel-title">AI RECOGNITION</div>
+      <div class="accuracy-ring">
+        <svg width="90" height="90" viewBox="0 0 90 90">
+          <circle cx="45" cy="45" r="36" fill="none" stroke="#0a1020" stroke-width="8"/>
+          <circle id="accCircle" cx="45" cy="45" r="36" fill="none" stroke="#00f0ff" stroke-width="8"
+            stroke-dasharray="226" stroke-dashoffset="22" stroke-linecap="round"
+            style="transition:stroke-dashoffset 1s ease"/>
+        </svg>
+        <div class="accuracy-val" id="accVal">90%</div>
+      </div>
+      <div class="recog-label">ACCURACY SCORE</div>
+      <div id="stateList"></div>
+      <div class="mini-chart">
+        <div class="panel-title">LAST 8 ROUNDS</div>
+        <div class="chart-bars" id="chartBars"></div>
+        <div class="chart-label"><span>R1</span><span>R8</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const avatars=[
+  {name:"ZEPHYR-X",cls:"SHADOW ASSASSIN",color:"#00f0ff",body:"#1a2a4a",eyes:"#00f0ff"},
+  {name:"BLAZE-9",cls:"FIRE WARLORD",color:"#ff5500",body:"#3a1a0a",eyes:"#ff8800"},
+  {name:"NOVA-7",cls:"COSMIC MAGE",color:"#aa44ff",body:"#1a0a3a",eyes:"#cc88ff"},
+  {name:"IRON-K",cls:"TANK GUARDIAN",color:"#88aa00",body:"#1a2a0a",eyes:"#aaff00"},
+  {name:"STORM-Z",cls:"LIGHTNING STRIKER",color:"#ffee00",body:"#2a2a0a",eyes:"#ffff44"},
+];
+
+const moves=[
+  {name:"DASH STRIKE",icon:"⚡"},
+  {name:"SHADOW STEP",icon:"🌑"},
+  {name:"POWER SLAM",icon:"💥"},
+  {name:"COUNTER HOLD",icon:"🛡"},
+  {name:"COMBO BURST",icon:"🌀"},
+  {name:"STEALTH MODE",icon:"👁"},
+  {name:"ENERGY BLAST",icon:"✨"},
+  {name:"BLADE DANCE",icon:"⚔"},
+];
+
+const stats=[
+  {key:"hp",label:"HEALTH",cls:"hp"},
+  {key:"stamina",label:"STAMINA",cls:"stamina"},
+  {key:"skill",label:"SKILL",cls:"skill"},
+  {key:"exp",label:"EXPERIENCE",cls:"exp"},
+  {key:"aggro",label:"AGGRESSION",cls:"aggro"},
+  {key:"defense",label:"DEFENSE",cls:"defense"},
+];
+
+let cur={...avatars[0]};
+let statVals={hp:78,stamina:65,skill:82,exp:54,aggro:71,defense:44};
+let accuracy=90;
+const logs=["[00:01] Match started – ARENA DELTA","[00:03] ZEPHYR-X entered stealth","[00:07] Combo x3 registered","[00:12] HP drain event detected","[00:18] Prediction accuracy: 94%"];
+
+function drawAvatar(a){
+  const c=document.getElementById("avatarCanvas"),ctx=c.getContext("2d");
+  ctx.clearRect(0,0,120,120);
+  // Body
+  ctx.beginPath();ctx.arc(60,60,52,0,Math.PI*2);
+  ctx.fillStyle=a.body;ctx.fill();
+  // Glow ring
+  ctx.beginPath();ctx.arc(60,60,52,0,Math.PI*2);
+  ctx.strokeStyle=a.color;ctx.lineWidth=3;
+  ctx.shadowBlur=15;ctx.shadowColor=a.color;ctx.stroke();ctx.shadowBlur=0;
+  // Face
+  ctx.beginPath();ctx.arc(60,55,28,0,Math.PI*2);
+  ctx.fillStyle=a.body;ctx.fill();
+  ctx.strokeStyle=a.color+"88";ctx.lineWidth=1;ctx.stroke();
+  // Eyes
+  [[46,50],[74,50]].forEach(([x,y])=>{
+    ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);
+    ctx.fillStyle=a.eyes;ctx.fill();
+    ctx.shadowBlur=10;ctx.shadowColor=a.eyes;ctx.fill();ctx.shadowBlur=0;
+  });
+  // Mouth
+  ctx.beginPath();ctx.arc(60,68,10,0.2,Math.PI-0.2);
+  ctx.strokeStyle=a.color+"aa";ctx.lineWidth=2;ctx.stroke();
+  // Symbol
+  ctx.font="bold 14px Courier New";ctx.fillStyle=a.color;
+  ctx.textAlign="center";ctx.fillText("⬡",60,100);
+}
+
+function renderStats(){
+  document.getElementById("statRows").innerHTML=stats.map(s=>`
+    <div class="stat-row ${s.cls}">
+      <div class="stat-label">${s.label}</div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${statVals[s.key]}%"></div></div>
+      <div class="stat-val">${statVals[s.key]}</div>
+    </div>`).join("");
+}
+
+function renderPredictions(){
+  const pool=[...moves].sort(()=>Math.random()-.5).slice(0,4);
+  let vals=[Math.random()*.3+.55,Math.random()*.2+.25,Math.random()*.1+.1,Math.random()*.08+.04];
+  const sum=vals.reduce((a,b)=>a+b,0);vals=vals.map(v=>v/sum);
+  vals.sort((a,b)=>b-a);
+  document.getElementById("predList").innerHTML=pool.map((m,i)=>`
+    <div class="pred-move ${i===0?'top':''}">
+      <span class="action-icon">${m.icon}</span>
+      <span class="pred-move-name">${m.name}</span>
+      <div class="pred-bar"><div class="pred-bar-fill" style="width:${(vals[i]*100).toFixed(0)}%"></div></div>
+      <span class="pred-conf">${(vals[i]*100).toFixed(0)}%</span>
+    </div>`).join("");
+}
+
+function renderLog(msg){
+  if(msg)logs.unshift(`[${String(Math.floor(Math.random()*60)).padStart(2,'0')}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}] ${msg}`);
+  if(logs.length>8)logs.pop();
+  document.getElementById("logList").innerHTML=logs.map((l,i)=>`<div class="log-entry ${i===0&&msg?'new':''}">${l.replace(/\[.*?\]/,m=>`<span>${m}</span>`)}</div>`).join("");
+}
+
+function renderRecognition(){
+  const states=["IDLE","ATTACKING","DODGING","CHARGING","DEFENDING"];
+  const probs=states.map(()=>Math.random()).sort((a,b)=>b-a);
+  document.getElementById("stateList").innerHTML=states.map((s,i)=>`
+    <div class="state-item"><span class="s-name">${s}</span><span class="s-conf">${(probs[i]*100).toFixed(1)}%</span></div>`).join("");
+
+  accuracy=Math.round(88+Math.random()*10);
+  const offset=226-(226*accuracy/100);
+  document.getElementById("accCircle").style.strokeDashoffset=offset;
+  document.getElementById("accVal").textContent=accuracy+"%";
+
+  const bars=Array.from({length:8},()=>Math.round(30+Math.random()*70));
+  document.getElementById("chartBars").innerHTML=bars.map(h=>`<div class="chart-bar" style="height:${h}%"></div>`).join("");
+}
+
+function randomizeAvatar(){
+  cur=avatars[Math.floor(Math.random()*avatars.length)];
+  document.getElementById("aName").textContent=cur.name;
+  document.getElementById("aClass").textContent=cur.cls;
+  Object.keys(statVals).forEach(k=>statVals[k]=Math.round(30+Math.random()*65));
+  drawAvatar(cur);renderStats();renderPredictions();renderRecognition();
+  renderLog(`Avatar switched to ${cur.name}`);
+}
+
+function simulateBattle(){
+  const actions=["landed COMBO BURST","activated STEALTH MODE","triggered COUNTER HOLD","executed DASH STRIKE","unleashed ENERGY BLAST"];
+  const a=actions[Math.floor(Math.random()*actions.length)];
+  Object.keys(statVals).forEach(k=>{
+    statVals[k]=Math.max(5,Math.min(99,statVals[k]+Math.round((Math.random()-.45)*15)));
+  });
+  renderStats();renderPredictions();renderRecognition();
+  renderLog(`${cur.name} ${a}`);
+}
+
+// Init
+drawAvatar(cur);renderStats();renderPredictions();renderLog(null);renderRecognition();
+
+// Auto-update every 4s
+setInterval(()=>{renderPredictions();renderRecognition();},4000);
+</script>
+</body>
+</html>
